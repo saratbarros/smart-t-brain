@@ -10,47 +10,38 @@ import ImageLinkForm from './components/ImageLinkForm/ImageLinkForm';
 import Rank from './components/Rank/Rank';
 import Particles from 'react-tsparticles';
 import { loadFull } from 'tsparticles';
-import Clarifai from 'clarifai';
 window.process = {
   env: {
       NODE_ENV: 'development'
   }
 } 
-
-const app = new Clarifai.App({
-  apiKey:'b4e9b0d7742f415486c1088cd9daa926'
-});
  
-const particlesInit = async (main) => {
-  console.log(main);
-
-  // you can initialize the tsParticles instance (main) here, adding custom shapes or presets
-  // this loads the tsparticles package bundle, it's the easiest method for getting everything ready
-  // starting from v2 you can add only the features you need reducing the bundle size
+const particlesInit = async (main) => {  
   await loadFull(main);
 };
 
 const particlesLoaded = (container) => {
-  console.log(container);
 };
+
+const initialSate = {
+  input: '',
+  imageUrl: '',
+  box: {},
+  route: 'signin',
+  isSignedIn: false,
+  user: {
+    id: '',
+    email: '',
+    name: '',
+    entries: 0,
+    joined: ''
+  }
+}
  
 class App extends Component {
   constructor(){
     super();
-    this.state = {
-      input: '',
-      imageUrl: '',
-      box: {},
-      route: 'signin',
-      isSignedIn: false,
-      user: {
-        id: '',
-        email: '',
-        name: '',
-        entries: 0,
-        joined: ''
-      }
-    }
+    this.state = initialSate;
   }
 
   loadUser = (data) => {
@@ -87,7 +78,14 @@ class App extends Component {
 
   onButtonSubmit = () => {
     this.setState({imageUrl: this.state.input});
-    app.models.predict(Clarifai.FACE_DETECT_MODEL, this.state.input)
+    fetch('http://localhost:3000/imageurl', {
+      method: 'post',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        input: this.state.input
+      })
+    })
+    .then(response => response.json())
     .then(response => {
       if (response) {
         fetch('http://localhost:3000/image', {
@@ -101,6 +99,7 @@ class App extends Component {
         .then(count => {
           this.setState(Object.assign(this.state.user, {entries: count}))
         })
+        .catch(console.log);
       } 
       this.displayFaceBox(this.calculateFaceLocation(response))
     })
@@ -109,7 +108,7 @@ class App extends Component {
 
   onRouteChange = (route) => { 
     if (route === 'signout') {
-      this.setState({isSignedIn: false});
+      this.setState(initialSate);
     } else if (route === 'home') {
       this.setState({isSignedIn: true});
     }
@@ -125,31 +124,14 @@ class App extends Component {
           init={particlesInit}
           loaded={particlesLoaded}
           options={{
-            fpsLimit: 120,
-            interactivity: {
-              events: {
-                onClick: {
-                  enable: true,
-                  mode: 'bubble',
-                }
-              },
-              modes: {
-                push: {
-                  quantity: 4,
-                },
-                repulse: {
-                  distance: 200,
-                  duration: 0.4,
-                },
-              },
-            },
+            fpsLimit: 60,
             particles: {
               number: {
                 value: 200,
                 limit: 300,
                 density: {
                   enable: true,
-                  value_area: 800
+                  value_area: 1000
                 }
               },
               color: {
@@ -158,11 +140,8 @@ class App extends Component {
               shape: {
                 type: 'circle',
                 stroke: {
-                  width: 0,
+                  width: 0.5,
                   color: '#000000'
-                },
-                polygon: {
-                  nb_sides: 5
                 },
               },
               opacity: {
@@ -170,7 +149,7 @@ class App extends Component {
                 random: true,
                 anim: {
                   enable: true,
-                  speed: 1,
+                  speed: 0.5,
                   opacity_min: 0.3,
                   sync: false
                 }
@@ -180,7 +159,7 @@ class App extends Component {
                 random: true,
                 anim: {
                   enable: true,
-                  speed: 5,
+                  speed: 4,
                   size_min: 10,
                   sync: false
                 }
